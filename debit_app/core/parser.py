@@ -156,6 +156,24 @@ def expand_rows(row_dict: dict) -> list:
     return expanded
 
 
+def _detect_col_offset(cols: list[str]) -> int:
+    """
+    Detect column offset for files that insert an extra numeric column
+    before the piece name (e.g. door order CSVs with a depth/thickness col).
+
+    Normal layout:  col3=piece_name, col4=cabinet_num
+    Shifted layout: col3=number(depth), col4=piece_name, col5=cabinet_num
+
+    Returns 0 for normal, 1 for shifted.
+    """
+    col3 = cols[3].strip() if len(cols) > 3 else ""
+    col4 = cols[4].strip() if len(cols) > 4 else ""
+    # col3 is purely numeric AND col4 looks like a piece name (letters / braces)
+    if re.match(r'^-?\d*\.?\d+$', col3) and re.search(r'[A-Za-z{]', col4):
+        return 1
+    return 0
+
+
 def parse_value(val: str):
     """Parse a string value to float, return 0.0 on failure."""
     val = val.strip()
@@ -169,45 +187,49 @@ def parse_value(val: str):
 
 def parse_csv_file(filepath: str, source_color: str = "#FFFFFF") -> list:
     """
-    Parse a CSV file (no headers) with columns:
-      qty, width, length, piece_name, cabinet_num, description, color_code
+    Parse a CSV file (no headers).
 
-    Returns list of expanded row dicts with keys:
-      qty, width, length, piece_name, cabinet_num_raw, description,
-      color_code, source_file, source_color, cabinet_id, sub_id
+    Supports two layouts (auto-detected per line):
+      Normal:  qty, width, length, piece_name, cabinet_num, description, color_code
+      Shifted: qty, width, length, depth(ignored), piece_name, cabinet_num, description, color_code
+
+    Returns list of expanded row dicts.
     """
     rows = []
 
     with open(filepath, newline="", encoding="utf-8-sig") as f:
         reader = csv.reader(f)
         for line_num, cols in enumerate(reader, start=1):
-            # Skip empty lines
             if not cols or all(c.strip() == "" for c in cols):
                 continue
 
-            # Pad columns to at least 7
-            while len(cols) < 7:
+            # Pad to at least 8 columns to accommodate shifted layout
+            while len(cols) < 8:
                 cols.append("")
 
             try:
-                piece_name_raw = cols[3].strip()
+                # Detect if this row uses the shifted layout (extra col before piece_name)
+                offset = _detect_col_offset(cols)
+
+                piece_name_raw = cols[3 + offset].strip()
+
                 # Apply normalisation / exclusion map
                 if piece_name_raw in PIECE_NAME_MAP:
                     canonical = PIECE_NAME_MAP[piece_name_raw]
                     if canonical is None:
-                        continue   # excluded part — skip entire row
+                        continue   # excluded — skip row
                     piece_name_raw = canonical
 
                 raw_row = {
-                    "qty": int(float(cols[0].strip())) if cols[0].strip() else 1,
-                    "width": parse_value(cols[1]),
-                    "length": parse_value(cols[2]),
-                    "piece_name": piece_name_raw,
-                    "cabinet_num_raw": cols[4].strip(),
-                    "description": cols[5].strip(),
-                    "color_code": cols[6].strip(),
-                    "source_file": filepath,
-                    "source_color": source_color,
+                    "qty":             int(float(cols[0].strip())) if cols[0].strip() else 1,
+                    "width":           parse_value(cols[1]),
+                    "length":          parse_value(cols[2]),
+                    "piece_name":      piece_name_raw,
+                    "cabinet_num_raw": cols[4 + offset].strip(),
+                    "description":     cols[5 + offset].strip(),
+                    "color_code":      cols[6 + offset].strip(),
+                    "source_file":     filepath,
+                    "source_color":    source_color,
                 }
                 expanded = expand_rows(raw_row)
                 rows.extend(expanded)

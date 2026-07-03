@@ -1,0 +1,132 @@
+1,47,29.5625,DOS,R5:23,Unfinished Back,None
+1,36.75,29.5625,DOS,R5:5,Unfinished Back,None
+1,36.5,45.75,DOS,R5:17,,None
+1,35.5,29.5625,DOS,R5:12,Unfinished Back,None
+2,35.25,26.75,DOS,R5:25&26,,None
+1,30.75,78.25,DOS,R5:24,,None
+2,29.5,67.5,PIGNON (L),R5:15&16,,A-1000
+2,29.5,67.5,PIGNON (R),R5:15&16,,A-1000
+3,29.5,47,PIGNON (L),R5:17&19&22,,A-1202
+3,29.5,47,PIGNON (R),R5:17&19&22,,A-1202
+1,29.5,36.5,DESSUS/DESSOUS,R5:17,,A-1000
+1,29.5,29.5625,DOS,R5:10,Unfinished Back,None
+6,29.5,24.75,DESSUS/DESSOUS,R5:15(2)&16(2)&19&22,,A-1000
+2,28.875,24,TAB FIXE,R5:15&16,Fixed Shelf,A-1000
+6,28,23.9375,TAB AJUST,R5:15(3)&16(3),Adjustable Shelf,A-2000
+4,25.375,22.25,Drw Bottom,R5:15(2)&16(2),Drawer Box Bottom,None
+2,24.75,66.25,DOS,R5:15&16,,None
+2,24.75,45.75,DOS,R5:19&22,,None
+1,23.75,12,DOS,R5:11,Unfinished Back,None
+1,23.5,79.5,PIGNON (L),R5:24,,A-1000
+1,23.5,79.5,PIGNON (R),R5:24,,A-1000
+1,23.5,47,DESSUS/DESSOUS,R5:23,Bottom of cabinet box,A-1000
+1,23.5,35.5,DESSUS/DESSOUS,R5:12,Bottom of cabinet box,A-1000
+2,23.5,30.75,DESSUS/DESSOUS,R5:24(2),,A-1000
+7,23.5,30.25,PIGNON (L),R5:1&2&3&10&13&14&23,Unfinished End,A-1000
+1,23.5,30.25,PIGNON (R),R5:23,Finished End,A-1000
+7,23.5,30.25,PIGNON (R),R5:1&2&3&10&12&13&14,Unfinished End,A-1000
+1,23.5,29.5625,DOS,R5:1,Unfinished Back,None
+1,23.5,29.5,DESSUS/DESSOUS,R5:10,Bottom of cabinet box,A-1000
+1,23.5,24.25,DESSUS/DESSOUS,R5:27,,A-1000
+1,23.5,23.75,DESSUS/DESSOUS,R5:11,,A-1000
+2,23.5,23.5,DESSUS/DESSOUS,R5:1&4,,A-1000
+1,23.5,16.5,DESSUS/DESSOUS,R5:13,Bottom of cabinet box,A-1000
+2,23.5,15.5,DESSUS/DESSOUS,R5:2&3,,A-1000
+1,23.5,14.5,DESSUS/DESSOUS,R5:14,,A-1000
+1,23.5,12.625,PIGNON (L),R5:11,Unfinished End,A-1000
+1,23.5,12.625,PIGNON (R),R5:11,Unfinished End,A-1000
+2,22,46.18748,TAB AJUST,R5:23(2),Adjustable Shelf,A-2000
+5,22,29.9375,TAB AJUST,R5:24(5),Adjustable Shelf,A-2000
+1,21.375,21.25,Drw Bottom,R5:11,Drawer Box Bottom,None
+3,21.375,21,Drw Bottom,R5:1(2)&4,Drawer Box Bottom,None
+6,21.375,13,Drw Bottom,R5:2(3)&3(3),Drawer Box Bottom,None
+2,21.375,12,Drw Bottom,R5:14(2),Drawer Box Bottom,None
+1,19.375,14,Tray Bottom,R5:13,Roll out Tray Bottom,None
+2,18.125,29.5625,DOS,R5:8&9,Unfinished Back,None
+2,16.875,29.5625,DOS,R5:6&7,Unfinished Back,None
+1,16.5,29.5625,DOS,R5:13,Unfinished Back,None
+2,15.5,29.5625,DOS,R5:2&3,Unfinished Back,None
+1,14.875,30.125,Door(L),R5:10,Cabinet Door,None
+1,14.875,30.125,Door(R),R5:10,Cabinet Door,None
+1,14.5,29.5625,DOS,R5:14,Unfinished Back,None
+1,13,36.75,DESSUS/DESSOUS,R5:5,Bottom of cabinet box,A-1000
+2,13,30.25,PIGNON (L),R5:6&9,Unfinished End,A-1000
+2,13,30.25,PIGNON (R),R5:5&6,Unfinished End,A-1000
+1,13,18.125,DESSUS/DESSOUS,R5:9,Bottom of cabinet box,A-1000
+1,13,16.875,DESSUS/DESSOUS,R5:6,Bottom of cabinet box,A-1000
+4,12,35.25,DESSUS/DESSOUS,R5:25(2)&26(2),,A-1000
+2,12,28,PIGNON (L),R5:25&26,,A-1202
+2,12,28,PIGNON (R),R5:25&26,,A-1202
+4,12,26,Drw L Side,R5:15(2)&16(2),Drawer Box Side,A-4000
+4,12,26,Drw R Side,R5:15(2)&16(2),Drawer Box Side,A-4000
+4,12,23,Drw Front,R5:15(2)&16(2),Drawer Box Front,A-4000
+2,12,22,Drw L Side,R5:1(2),Drawer Box Side,A-4000
+2,12,22,Drw R Side,R5:1(2),Drawer Box Side,A-4000
+2,12,21.75,Drw Front,R5:1(2),Drawer Box Front,A-4000
+1,11.5,35.9375,TAB AJUST,R5:5,Adjustable Shelf,A-2000
+1,11.5,17.3125,TAB AJUST,R5:9,Adjustable Shelf,A-2000
+1,11.5,16.0625,TAB AJUST,R5:6,Adjustable Shelf,A-2000
+4,11,34.4375,TAB AJUST,R5:25(2)&26(2),Adjustable Shelf,A-2000
+4,11,23,Drw Back,R5:15(2)&16(2),Drawer Box Back,A-4000
+2,11,21.75,Drw Back,R5:1(2),Drawer Box Back,A-4000
+5,10.5,22,Drw L Side,R5:2&3&4&14(2),Drawer Box Side,A-4000
+5,10.5,22,Drw R Side,R5:2&3&4&14(2),Drawer Box Side,A-4000
+1,10.5,21.75,Drw Front,R5:4,Drawer Box Front,A-4000
+2,10.5,13.75,Drw Front,R5:2&3,Drawer Box Front,A-4000
+2,10.5,12.75,Drw Front,R5:14(2),Drawer Box Front,A-4000
+1,9.5,21.75,Drw Back,R5:4,Drawer Box Back,A-4000
+2,9.5,13.75,Drw Back,R5:2&3,Drawer Box Back,A-4000
+2,9.5,12.75,Drw Back,R5:14(2),Drawer Box Back,A-4000
+2,9,30.25,PIGNON (L),R5:7&8,Unfinished End,A-1000
+2,9,30.25,PIGNON (R),R5:7&8,Unfinished End,A-1000
+1,9,22,Drw Front,R5:11,Drawer Box Front,A-4000
+1,9,22,Drw L Side,R5:11,Drawer Box Side,A-4000
+1,9,22,Drw R Side,R5:11,Drawer Box Side,A-4000
+1,9,18.125,DESSUS/DESSOUS,R5:8,Bottom of cabinet box,A-1000
+1,9,16.875,DESSUS/DESSOUS,R5:7,Bottom of cabinet box,A-1000
+1,8,22,Drw Back,R5:11,Drawer Box Back,A-4000
+1,5.6875,15.25,Tray Face,R5:13,TrayFace,A-4444
+1,5,20,Tray Side L,R5:13,Roll Out Tray Side,A-4444
+1,5,20,Tray Side R,R5:13,Roll Out Tray Side,A-4444
+1,4.5,46.25,Front Toe,R5:23,Structural Toe parts,None
+1,4.5,36,Front Toe,R5:5,Structural Toe parts,None
+1,4.5,34.75,Front Toe,R5:12,Structural Toe parts,None
+1,4.5,30,Front Toe,R5:24,,None
+1,4.5,30,Front Toe,R5:10,Structural Toe parts,None
+4,4.5,25.875,Side Toe,R5:15(2)&16(2),Structural Toe parts,None
+2,4.5,25.25,Front Toe,R5:15&16,,None
+1,4.5,24.25,Front Toe,R5:11,Structural Toe parts,None
+2,4.5,24,Front Toe,R5:1&4,Structural Toe parts,None
+22,4.5,19.875,Side Toe,R5:1(2)&2(2)&3(2)&4(2)&10(2)&11(2)&12(2)&13(2)&14(2)&23(2)&24(2),Structural Toe parts,None
+1,4.5,18.625,Front Toe,R5:8,Structural Toe parts,None
+3,4.5,17.375,Front Toe,R5:6&7&9,Structural Toe parts,None
+1,4.5,17,Front Toe,R5:13,Structural Toe parts,None
+2,4.5,16,Front Toe,R5:2&3,Structural Toe parts,None
+1,4.5,15,Front Toe,R5:14,Structural Toe parts,None
+6,4.5,9.375,Side Toe,R5:5(2)&6(2)&9(2),Structural Toe parts,None
+4,4.5,5.375,Side Toe,R5:7(2)&8(2),Structural Toe parts,None
+4,4,22,Drw L Side,R5:2(2)&3(2),Drawer Box Side,A-4000
+4,4,22,Drw R Side,R5:2(2)&3(2),Drawer Box Side,A-4000
+1,4,14.75,Tray Back,R5:13,Roll Out Tray Back,A-4040
+4,4,13.75,Drw Front,R5:2(2)&3(2),Drawer Box Front,A-4000
+1,3.5,46.25,Front Stretcher,R5:23,Horizontal Stretchers,A-1000
+1,3.5,46.25,Rear Stretcher,R5:23,Horizontal Stretchers,A-1000
+1,3.5,36,Front Stretcher,R5:5,Horizontal Stretchers,A-1000
+1,3.5,36,Rear Stretcher,R5:5,Horizontal Stretchers,A-1000
+1,3.5,34.75,Front Stretcher,R5:12,Horizontal Stretchers,A-1000
+1,3.5,34.75,Rear Stretcher,R5:12,Horizontal Stretchers,A-1000
+1,3.5,29.5,Front Stretcher,R5:10,Horizontal Stretchers,A-1000
+1,3.5,29.5,Rear Stretcher,R5:10,Horizontal Stretchers,A-1000
+2,3.5,22.75,Front Stretcher,R5:1&4,,A-1000
+2,3.5,22.75,Rear Stretcher,R5:1&4,,A-1000
+2,3.5,17.375,Front Stretcher,R5:8&9,Horizontal Stretchers,A-1000
+2,3.5,17.375,Rear Stretcher,R5:8&9,Horizontal Stretchers,A-1000
+2,3.5,16.125,Front Stretcher,R5:6&7,Horizontal Stretchers,A-1000
+2,3.5,16.125,Rear Stretcher,R5:6&7,Horizontal Stretchers,A-1000
+1,3.5,15.75,Front Stretcher,R5:13,Horizontal Stretchers,A-1000
+1,3.5,15.75,Rear Stretcher,R5:13,Horizontal Stretchers,A-1000
+2,3.5,14.75,Front Stretcher,R5:2&3,,A-1000
+2,3.5,14.75,Rear Stretcher,R5:2&3,,A-1000
+1,3.5,13.75,Front Stretcher,R5:14,,A-1000
+1,3.5,13.75,Rear Stretcher,R5:14,,A-1000
+4,3,13.75,Drw Back,R5:2(2)&3(2),Drawer Box Back,A-4000

@@ -20,7 +20,8 @@ except ImportError:
 
 
 # ── Piece-name routing ──────────────────────────────────────────────────────
-DRW_PREFIXES = ("Drw",)   # piece names starting with these go to drawer sheet
+# Piece names starting with these prefixes go to the drawer/tray sheet
+DRW_PREFIXES = ("Drw", "Tray")
 
 
 def _is_drw(name: str) -> bool:

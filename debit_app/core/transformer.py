@@ -52,23 +52,29 @@ def _cabinet_sort_key(cabinet_id: str):
     Sort cabinet IDs:
       0 — pure numeric (1, 2, 3, 10…) sorted numerically
       1 — alpha-prefixed, grouped by prefix then number (N1,N2… R1,R2…)
-          Also handles colon sub-IDs: R2:1 < R2:2 < R2:10
+          Handles colon sub-IDs: R2:1 < R2:2 < R2:10
+          Handles colon+alpha sub-IDs: R5:N2 < R5:N4 < R5:N11
       2 — everything else lexicographically
     """
     if re.match(r'^\d+$', cabinet_id):
-        return (0, "", 0, int(cabinet_id), 0)
+        return (0, "", int(cabinet_id), "", 0)
 
-    # Handle colon format: R2:1  →  prefix=R, main=2, sub=1
+    # R5:N11 style — outer alpha+digit prefix + colon + inner alpha-prefix + number
+    m = re.match(r'^([A-Za-z]+\d+):([A-Za-z]+)(\d+)$', cabinet_id)
+    if m:
+        return (1, m.group(1).upper(), 0, m.group(2).upper(), int(m.group(3)))
+
+    # R2:1 style — alpha prefix + digit + colon + number
     m = re.match(r'^([A-Za-z]+)(\d+):(\d+)$', cabinet_id)
     if m:
-        return (1, m.group(1).upper(), int(m.group(2)), int(m.group(3)), 0)
+        return (1, m.group(1).upper(), int(m.group(2)), "", int(m.group(3)))
 
-    # Standard alpha-numeric: N1, R2 …
+    # N1, R2 style — simple alpha + number
     m = re.match(r'^([A-Za-z]+)(\d+)$', cabinet_id)
     if m:
-        return (1, m.group(1).upper(), int(m.group(2)), 0, 0)
+        return (1, m.group(1).upper(), int(m.group(2)), "", 0)
 
-    return (2, cabinet_id, 0, 0, 0)
+    return (2, cabinet_id, 0, "", 0)
 
 
 def _aggregate_piece_entries(piece_rows: list) -> list:
@@ -227,8 +233,13 @@ def transform(rows: list, piece_names: list) -> list:
         for pname in piece_names:
 
             if pname in _MERGED_COLS:
-                # e.g. PORTES/FAÇADES ← Door(L)+Door(R)+Drawer
+                # e.g. PORTES/FAÇADES ← Door(L)+Door(R)+Drawer (merge L+R when dims match)
                 entries = _collect_merged_col(pname, _MERGED_COLS[pname], pieces)
+                # Also append any aliased raw names pointing to this column
+                # (e.g. {Door Size}, {Drawer Front Size} from door-order CSVs)
+                for raw, target in _ALIASES.items():
+                    if target == pname and raw not in _MERGED_COLS[pname]:
+                        entries = entries + _aggregate_piece_entries(pieces.get(raw, []))
 
             elif pname in alias_raw:
                 # Column gathers its own direct rows PLUS all aliased rows.

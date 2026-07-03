@@ -125,6 +125,7 @@ TRANSLATIONS = {
         "drawer_preview": "Drawer cut list",
         "no_drawer_parts": "No drawer parts in this selection.",
         "download_csv_drawers": "⬇ Download Drawer CSV",
+        "file_colors": "File highlight colors",
     },
     "fr": {
         "language": "Langue",
@@ -226,6 +227,7 @@ TRANSLATIONS = {
         "drawer_preview": "Liste de débit tiroirs",
         "no_drawer_parts": "Aucune pièce de tiroir dans cette sélection.",
         "download_csv_drawers": "⬇ Télécharger CSV tiroirs",
+        "file_colors": "Couleurs de surlignage par fichier",
     },
 }
 
@@ -987,12 +989,16 @@ def render_language_buttons() -> str:
     return language
 
 
-def parse_uploaded_files(uploaded_files) -> tuple[list[dict], list[tuple[str, str]]]:
+def parse_uploaded_files(uploaded_files, custom_colors: dict | None = None) -> tuple[list[dict], list[tuple[str, str]]]:
     all_rows = []
     imported_files = []
 
     for idx, uploaded in enumerate(uploaded_files):
-        color = FILE_COLORS[idx % len(FILE_COLORS)]
+        # Use custom color if set, else default palette
+        if custom_colors and uploaded.name in custom_colors:
+            color = custom_colors[uploaded.name]
+        else:
+            color = FILE_COLORS[idx % len(FILE_COLORS)]
         suffix = Path(uploaded.name).suffix or ".csv"
 
         tmp_path = None
@@ -1203,6 +1209,11 @@ def preview_html(data: list[dict], piece_names: list[str], labels: dict) -> str:
     for row in data:
         # Find max number of entries across all pieces in this cabinet row
         all_entries = {name: piece_entries(row, name) for name in piece_names}
+
+        # Skip cabinets that have no entries for any visible column
+        if not any(all_entries.values()):
+            continue
+
         max_rows = max((len(e) for e in all_entries.values()), default=1)
         max_rows = max(max_rows, 1)
 
@@ -1961,6 +1972,28 @@ def main():
         )
         return
 
+    # ── Per-file color pickers ─────────────────────────────────────────
+    custom_colors: dict[str, str] = {}
+    if len(uploaded_files) > 0:
+        st.markdown(
+            f'<div style="font-size:11px;font-weight:600;color:#475569;'
+            f'letter-spacing:0.8px;text-transform:uppercase;margin:8px 0 6px;">'
+            f'🎨 &nbsp;{labels.get("file_colors","File highlight colors")}</div>',
+            unsafe_allow_html=True,
+        )
+        color_cols = st.columns(min(len(uploaded_files), 4))
+        for idx, uf in enumerate(uploaded_files):
+            default = FILE_COLORS[idx % len(FILE_COLORS)]
+            # Use white (#FFFFFF) as default for first file (no highlight)
+            key = f"_file_color_{uf.name}"
+            with color_cols[idx % len(color_cols)]:
+                picked = st.color_picker(
+                    Path(uf.name).stem[:20],
+                    value=st.session_state.get(key, default),
+                    key=key,
+                )
+                custom_colors[uf.name] = picked
+
     # ── Parse with progress feedback ──────────────────────────────────
     parse_placeholder = st.empty()
     parse_placeholder.markdown(
@@ -1971,7 +2004,7 @@ def main():
         unsafe_allow_html=True,
     )
 
-    all_rows, imported_files = parse_uploaded_files(uploaded_files)
+    all_rows, imported_files = parse_uploaded_files(uploaded_files, custom_colors)
     pivot_data = transform(all_rows, piece_names)
 
     # ── Success banner ────────────────────────────────────────────────
