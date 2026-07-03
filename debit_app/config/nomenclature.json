@@ -8,7 +8,7 @@
     "PARTITION",
     "PORTES/FAÇADES",
     "Stile",
-    "Toe Skin"
+    "Poignées"
   ],
   "drawer_piece_names": [
     "Drw L Side",
@@ -30,7 +30,8 @@
     "{Door Size}":         "PORTES/FAÇADES",
     "{Drawer Front Size}": "PORTES/FAÇADES",
     "Door":                "PARTITION",
-    "PANEL":               "PARTITION"
+    "PANEL":               "PARTITION",
+    "Toe Skin":            null
   },
   "column_groups": {
     "description": "Description des pièces de meuble"

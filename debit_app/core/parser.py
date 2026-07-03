@@ -174,6 +174,54 @@ def _detect_col_offset(cols: list[str]) -> int:
     return 0
 
 
+def _infer_file_prefix(raw_cabinet_nums: list[str]) -> str:
+    """
+    Detect the dominant colon-prefix in a file's cabinet numbers.
+    e.g. if most cabinets are "R5:1", "R5:2"… the prefix is "R5:".
+    Returns "" if no clear prefix found (file uses plain numeric IDs).
+    """
+    from collections import Counter
+    prefixes = Counter()
+    for raw in raw_cabinet_nums:
+        # Split on & to get individual parts
+        for part in raw.split("&"):
+            part = re.sub(r'\(\d+\)$', '', part).strip()
+            m = re.match(r'^([A-Za-z]+\d+):(.+)$', part)
+            if m:
+                prefixes[m.group(1) + ":"] += 1
+    if not prefixes:
+        return ""
+    top_prefix, count = prefixes.most_common(1)[0]
+    # Only use it if it's clearly dominant (more than 30% of cabinet references)
+    total = sum(prefixes.values())
+    return top_prefix if count / total > 0.3 else ""
+
+
+def _apply_prefix_to_cabinet_num(raw: str, prefix: str) -> str:
+    """
+    Apply a file-level prefix to bare N-style sub-IDs.
+    e.g. prefix="R5:", raw="N3" → "R5:N3"
+         prefix="R5:", raw="N3&N5" → "R5:N3&R5:N5"
+         prefix="R5:", raw="R5:1" → unchanged "R5:1"
+    """
+    if not prefix:
+        return raw
+    parts = raw.split("&")
+    new_parts = []
+    for part in parts:
+        part = part.strip()
+        # Extract base token (without qty in parens)
+        token = re.sub(r'\(\d+\)$', '', part).strip()
+        qty_suffix = part[len(token):]  # e.g. "(2)"
+        # If token is a bare N-ID (e.g. "N3") add the prefix
+        if re.match(r'^[A-Za-z]+\d*$', token) and not token.startswith(prefix.rstrip(":")):
+            # Only prefix bare alpha IDs that don't already have the prefix
+            if ":" not in token:
+                token = prefix + token
+        new_parts.append(token + qty_suffix)
+    return "&".join(new_parts)
+
+
 def parse_value(val: str):
     """Parse a string value to float, return 0.0 on failure."""
     val = val.strip()
@@ -193,8 +241,25 @@ def parse_csv_file(filepath: str, source_color: str = "#FFFFFF") -> list:
       Normal:  qty, width, length, piece_name, cabinet_num, description, color_code
       Shifted: qty, width, length, depth(ignored), piece_name, cabinet_num, description, color_code
 
+    Bare N-style cabinet IDs (e.g. "N3") are automatically prefixed with the
+    file's dominant colon-prefix (e.g. "R5:") when one is detected.
+
     Returns list of expanded row dicts.
     """
+    # ── Pass 1: collect raw cabinet_num values to detect file prefix ──
+    raw_cab_nums = []
+    with open(filepath, newline="", encoding="utf-8-sig") as f:
+        reader = csv.reader(f)
+        for cols in reader:
+            if not cols or all(c.strip() == "" for c in cols):
+                continue
+            while len(cols) < 8:
+                cols.append("")
+            offset = _detect_col_offset(cols)
+            raw_cab_nums.append(cols[4 + offset].strip())
+    file_prefix = _infer_file_prefix(raw_cab_nums)
+
+    # ── Pass 2: parse rows ─────────────────────────────────────────────
     rows = []
 
     with open(filepath, newline="", encoding="utf-8-sig") as f:
@@ -225,7 +290,8 @@ def parse_csv_file(filepath: str, source_color: str = "#FFFFFF") -> list:
                     "width":           parse_value(cols[1]),
                     "length":          parse_value(cols[2]),
                     "piece_name":      piece_name_raw,
-                    "cabinet_num_raw": cols[4 + offset].strip(),
+                    "cabinet_num_raw": _apply_prefix_to_cabinet_num(
+                                           cols[4 + offset].strip(), file_prefix),
                     "description":     cols[5 + offset].strip(),
                     "color_code":      cols[6 + offset].strip(),
                     "source_file":     filepath,

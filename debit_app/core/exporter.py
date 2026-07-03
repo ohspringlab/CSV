@@ -99,6 +99,11 @@ def _write_sheet(
     data: list,
     piece_names: list[str],
     sheet_title: str = "Liste de Débit",
+    font_size: int = 14,
+    qty_col_width: int = 5,
+    dim_col_width: int = 18,
+    cab_col_width: int = 12,
+    mod_col_width: int = 16,
 ):
     """Write one pivot sheet into an openpyxl Worksheet.
 
@@ -107,28 +112,29 @@ def _write_sheet(
       B  = Module (blank – user fills manually)
       C… = piece columns (qty + dimensions pairs)
     """
-    header_font    = Font(bold=True, size=11)
-    subheader_font = Font(bold=True, size=10)
-    center_align   = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    left_align     = Alignment(horizontal="left",   vertical="center")
+    header_font    = Font(bold=True, size=font_size)
+    subheader_font = Font(bold=True, size=max(font_size - 1, 8))
+    data_font      = Font(size=font_size)
+    cab_font       = Font(bold=True, size=font_size)
+    center_align   = Alignment(horizontal="center", vertical="center", wrap_text=False)
+    left_align     = Alignment(horizontal="left",   vertical="center", wrap_text=False)
 
     header_fill    = PatternFill(start_color="FFD3D3D3", end_color="FFD3D3D3", fill_type="solid")
     subheader_fill = PatternFill(start_color="FFE8E8E8", end_color="FFE8E8E8", fill_type="solid")
-    module_fill    = PatternFill(start_color="FFFFF0C0", end_color="FFFFF0C0", fill_type="solid")
 
     thin   = Side(style="thin")
     border = Border(left=thin, right=thin, top=thin, bottom=thin)
 
     # ── Row 1: group headers ────────────────────────────────────────────
-    # Col A: Meuble
+    # Col A: Meuble — smaller font so it doesn't widen the column
+    meuble_font = Font(bold=True, size=max(font_size - 3, 9))
     c = ws.cell(row=1, column=1, value="Meuble")
-    c.font = header_font; c.alignment = center_align
+    c.font = meuble_font; c.alignment = center_align
     c.fill = header_fill; c.border = border
 
-    # Col B: Module (blank label, yellow tint)
     c = ws.cell(row=1, column=2, value="Module")
     c.font = header_font; c.alignment = center_align
-    c.fill = module_fill; c.border = border
+    c.fill = header_fill; c.border = border
 
     col = 3
     for pname in piece_names:
@@ -136,11 +142,15 @@ def _write_sheet(
         c.font = header_font; c.alignment = center_align
         c.fill = header_fill; c.border = border
         ws.merge_cells(start_row=1, start_column=col, end_row=1, end_column=col + 1)
+        # Apply font to the right (merged) cell too
+        c2 = ws.cell(row=1, column=col + 1)
+        c2.font = header_font; c2.fill = header_fill; c2.border = border
         col += 2
 
     # ── Row 2: sub-headers ──────────────────────────────────────────────
-    c = ws.cell(row=2, column=1, value=""); c.fill = subheader_fill; c.border = border
-    c = ws.cell(row=2, column=2, value=""); c.fill = subheader_fill; c.border = border
+    for ci in [1, 2]:
+        c = ws.cell(row=2, column=ci, value="")
+        c.font = subheader_font; c.fill = subheader_fill; c.border = border
 
     col = 3
     for _ in piece_names:
@@ -155,6 +165,11 @@ def _write_sheet(
     for row_data in data:
         # Pre-collect entries for every piece
         all_entries = {p: _piece_entries(row_data, p) for p in piece_names}
+
+        # Skip cabinets that have no entries for any column in this sheet
+        if not any(all_entries.values()):
+            continue
+
         max_rows = max((len(e) for e in all_entries.values()), default=1)
         max_rows = max(max_rows, 1)
 
@@ -162,19 +177,24 @@ def _write_sheet(
             xl_row = ws_row + sub_idx
 
             if sub_idx == 0:
-                # Cabinet ID cell spans all sub-rows
                 c = ws.cell(row=xl_row, column=1, value=row_data.get("cabinet_id", ""))
-                c.font = Font(bold=True); c.alignment = left_align; c.border = border
+                c.font = cab_font; c.alignment = left_align; c.border = border
                 if max_rows > 1:
                     ws.merge_cells(start_row=xl_row, start_column=1,
                                    end_row=xl_row + max_rows - 1, end_column=1)
+                    # Apply font to all merged cells in column A
+                    for mr in range(xl_row + 1, xl_row + max_rows):
+                        mc = ws.cell(row=mr, column=1)
+                        mc.font = cab_font; mc.border = border
 
-                # Module cell spans all sub-rows
                 c = ws.cell(row=xl_row, column=2, value="")
-                c.border = border; c.fill = module_fill
+                c.font = data_font; c.border = border
                 if max_rows > 1:
                     ws.merge_cells(start_row=xl_row, start_column=2,
                                    end_row=xl_row + max_rows - 1, end_column=2)
+                    for mr in range(xl_row + 1, xl_row + max_rows):
+                        mc = ws.cell(row=mr, column=2)
+                        mc.font = data_font; mc.border = border
 
             col = 3
             for pname in piece_names:
@@ -182,7 +202,7 @@ def _write_sheet(
 
                 if sub_idx < len(entries):
                     e    = entries[sub_idx]
-                    fill = _entries_fill([e])   # single entry → its own color
+                    fill = _entries_fill([e])
                     qty_text = _fmt(e.get("qty", ""))
                     dim_text = _dimension_str(e.get("width", ""), e.get("length", ""))
                 else:
@@ -193,25 +213,48 @@ def _write_sheet(
                 for val in [qty_text, dim_text]:
                     c = ws.cell(row=xl_row, column=col, value=val)
                     c.alignment = center_align; c.border = border
+                    c.font = data_font
                     if fill:
                         c.fill = fill
                     col += 1
 
         ws_row += max_rows
 
-    # ── Column widths ───────────────────────────────────────────────────
+    # ── Column widths — auto-fit based on content ──────────────────────
     ws.freeze_panes = "C3"
-    ws.column_dimensions["A"].width = 12
-    ws.column_dimensions["B"].width = 16   # Module
+
+    # Calculate auto-fit width for cabinet column (col A)
+    # Measure all cabinet IDs + "Meuble" header
+    max_cab_len = max(
+        (len(str(row_data.get("cabinet_id", ""))) for row_data in data),
+        default=4,
+    )
+    max_cab_len = max(max_cab_len, len("Meuble"))
+    # Convert character count to Excel column width (approx 1.2× + 2 padding)
+    auto_cab_width = max(8, min(max_cab_len * 1.3 + 2, cab_col_width))
+    ws.column_dimensions["A"].width = auto_cab_width
+    ws.column_dimensions["B"].width = mod_col_width
 
     col = 3
-    for _ in piece_names:
-        ws.column_dimensions[get_column_letter(col    )].width = 5
-        ws.column_dimensions[get_column_letter(col + 1)].width = 18
+    for pname in piece_names:
+        # Qty column: fixed narrow
+        ws.column_dimensions[get_column_letter(col)].width = qty_col_width
+
+        # Dimension column: measure longest dimension string in this piece
+        max_dim_len = len(pname)   # at minimum wide enough for the header
+        for row_data in data:
+            for e in _piece_entries(row_data, pname):
+                s = _dimension_str(e.get("width", ""), e.get("length", ""))
+                if len(s) > max_dim_len:
+                    max_dim_len = len(s)
+        # Convert to Excel width: each char ≈ 1.1 units at font_size 14
+        char_width = font_size / 11.0   # scale relative to default 11pt
+        auto_dim = max(dim_col_width, int(max_dim_len * char_width * 1.15) + 2)
+        ws.column_dimensions[get_column_letter(col + 1)].width = auto_dim
         col += 2
 
-    ws.row_dimensions[1].height = 30
-    ws.row_dimensions[2].height = 20
+    ws.row_dimensions[1].height = font_size * 2.2
+    ws.row_dimensions[2].height = font_size * 1.8
     # All data rows get a uniform height (one entry per physical row now)
     data_start = 3
     total_data_rows = sum(
@@ -219,29 +262,55 @@ def _write_sheet(
         for rd in data
     )
     for r in range(data_start, data_start + total_data_rows):
-        ws.row_dimensions[r].height = 18
+        ws.row_dimensions[r].height = font_size * 1.6
+
+    # ── Apply font_size to every cell that still has the default 11pt ──
+    # Row 1 col 1 (Meuble header) intentionally uses a smaller font — skip it.
+    meuble_coord = ws.cell(row=1, column=1).coordinate
+    for row in ws.iter_rows():
+        for cell in row:
+            if cell.coordinate == meuble_coord:
+                continue   # keep the intentional smaller font
+            if cell.font is None or cell.font.size == 11.0:
+                existing = cell.font
+                cell.font = Font(
+                    name=existing.name or "Calibri",
+                    size=font_size,
+                    bold=existing.bold,
+                    italic=existing.italic,
+                )
 
 
 # ── Public export functions ─────────────────────────────────────────────────
 
-def export_excel(data: list, piece_names: list, output_path: str):
+def export_excel(data: list, piece_names: list, output_path: str,
+                 font_size: int = 14, qty_col_width: int = 5,
+                 dim_col_width: int = 18, cab_col_width: int = 12,
+                 mod_col_width: int = 16):
     """Export to Excel with two sheets: main parts and drawer parts."""
     if not HAS_OPENPYXL:
         raise ImportError("openpyxl is required. Run: pip install openpyxl")
 
     main_names, drw_names = split_piece_names(piece_names)
+    kw = dict(font_size=font_size, qty_col_width=qty_col_width,
+              dim_col_width=dim_col_width, cab_col_width=cab_col_width,
+              mod_col_width=mod_col_width)
 
     wb = openpyxl.Workbook()
+    # Override the workbook default font size (Normal style = index 0)
+    # so empty/merged cells inherit the chosen font size instead of 11pt.
+    try:
+        wb._named_styles[0].font = Font(name="Calibri", size=font_size)
+    except Exception:
+        pass  # non-critical — explicit cell fonts still apply
 
-    # Sheet 1 – main cut list
     ws1 = wb.active
     ws1.title = "Liste de Débit"
-    _write_sheet(ws1, data, main_names)
+    _write_sheet(ws1, data, main_names, **kw)
 
-    # Sheet 2 – drawer box parts (only if there are drw columns)
     if drw_names:
         ws2 = wb.create_sheet(title="Tiroirs")
-        _write_sheet(ws2, data, drw_names, sheet_title="Tiroirs")
+        _write_sheet(ws2, data, drw_names, sheet_title="Tiroirs", **kw)
 
     wb.save(output_path)
 

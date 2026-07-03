@@ -8,6 +8,7 @@ desktop application so client feedback applies to the final Windows build.
 import html
 import json
 import os
+import re
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -126,6 +127,14 @@ TRANSLATIONS = {
         "no_drawer_parts": "No drawer parts in this selection.",
         "download_csv_drawers": "⬇ Download Drawer CSV",
         "file_colors": "File highlight colors",
+        "excel_export_settings": "Excel export settings",
+        "excel_font_size": "Font size",
+        "excel_dim_width": "Dimension column width",
+        "excel_cab_width": "Cabinet column width",
+        "unknown_pieces": "unrecognized piece name(s) — assign them to a column below",
+        "ignore": "ignore",
+        "file_prefix_label": "Cabinet prefix (optional)",
+        "file_prefix_help": "Add a prefix to bare N/alpha cabinet IDs in this file (e.g. R5:)",
     },
     "fr": {
         "language": "Langue",
@@ -228,6 +237,14 @@ TRANSLATIONS = {
         "no_drawer_parts": "Aucune pièce de tiroir dans cette sélection.",
         "download_csv_drawers": "⬇ Télécharger CSV tiroirs",
         "file_colors": "Couleurs de surlignage par fichier",
+        "excel_export_settings": "Paramètres export Excel",
+        "excel_font_size": "Taille de police",
+        "excel_dim_width": "Largeur col. dimensions",
+        "excel_cab_width": "Largeur col. meuble",
+        "unknown_pieces": "nom(s) de pièce non reconnu(s) — assignez-les à une colonne ci-dessous",
+        "ignore": "ignorer",
+        "file_prefix_label": "Préfixe meuble (optionnel)",
+        "file_prefix_help": "Ajouter un préfixe aux ID de meuble N/alpha de ce fichier (ex: R5:)",
     },
 }
 
@@ -949,8 +966,9 @@ def load_piece_names() -> list[str]:
     return [
         "PIGNON (L)", "PIGNON (R)", "DESSUS/DESSOUS", "DOS",
         "TAB AJUST", "PARTITION", "PORTES/FAÇADES",
-        "Stile", "Toe Skin",
+        "Stile", "Poignées",
         "Drw L Side", "Drw R Side", "Drw Front", "Drw Back", "Drw Bottom",
+        "Tray Bottom", "Tray Face", "Tray Side L", "Tray Side R", "Tray Back",
     ]
 
 
@@ -989,18 +1007,14 @@ def render_language_buttons() -> str:
     return language
 
 
-def parse_uploaded_files(uploaded_files, custom_colors: dict | None = None) -> tuple[list[dict], list[tuple[str, str]]]:
+def parse_uploaded_files(uploaded_files, custom_colors: dict | None = None,
+                         custom_prefixes: dict | None = None) -> tuple[list[dict], list[tuple[str, str]]]:
     all_rows = []
     imported_files = []
 
     for idx, uploaded in enumerate(uploaded_files):
-        # Use custom color if set, else default palette
-        if custom_colors and uploaded.name in custom_colors:
-            color = custom_colors[uploaded.name]
-        else:
-            color = FILE_COLORS[idx % len(FILE_COLORS)]
+        color = (custom_colors or {}).get(uploaded.name, FILE_COLORS[idx % len(FILE_COLORS)])
         suffix = Path(uploaded.name).suffix or ".csv"
-
         tmp_path = None
         try:
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -1008,6 +1022,17 @@ def parse_uploaded_files(uploaded_files, custom_colors: dict | None = None) -> t
                 tmp_path = tmp.name
 
             rows = parse_csv_file(tmp_path, source_color=color)
+
+            # Apply manual cabinet-prefix override (e.g. add "R5:" to bare N-IDs)
+            manual_prefix = (custom_prefixes or {}).get(uploaded.name, "").strip()
+            if manual_prefix:
+                if not manual_prefix.endswith(":"):
+                    manual_prefix += ":"
+                for row in rows:
+                    cid = row.get("cabinet_id", "")
+                    if cid and ":" not in cid and re.match(r'^[A-Za-z]', cid):
+                        row["cabinet_id"] = manual_prefix + cid
+
             for row in rows:
                 row["source_file"] = uploaded.name
             all_rows.extend(rows)
@@ -1949,6 +1974,32 @@ def main():
             label_visibility="collapsed",
         )
 
+        # ── Excel formatting controls ──────────────────────────────────
+        st.markdown(
+            f'<div style="margin:18px 0 6px;font-size:11px;font-weight:700;'
+            f'letter-spacing:1.2px;text-transform:uppercase;color:#475569;">'
+            f'📐 &nbsp;{html.escape(labels.get("excel_export_settings","Excel export settings"))}</div>',
+            unsafe_allow_html=True,
+        )
+        excel_font_size = st.slider(
+            labels.get("excel_font_size", "Font size"),
+            min_value=8, max_value=20,
+            value=st.session_state.get("excel_font_size", 14),
+            key="excel_font_size",
+        )
+        excel_dim_width = st.slider(
+            labels.get("excel_dim_width", "Dimension column width"),
+            min_value=10, max_value=40,
+            value=st.session_state.get("excel_dim_width", 18),
+            key="excel_dim_width",
+        )
+        excel_cab_width = st.slider(
+            labels.get("excel_cab_width", "Cabinet column width"),
+            min_value=8, max_value=30,
+            value=st.session_state.get("excel_cab_width", 12),
+            key="excel_cab_width",
+        )
+
     uploaded_files = st.file_uploader(
         "📂 " + labels["file_uploader"],
         type=["csv"],
@@ -1972,8 +2023,9 @@ def main():
         )
         return
 
-    # ── Per-file color pickers ─────────────────────────────────────────
+    # ── Per-file color pickers + prefix override ──────────────────────
     custom_colors: dict[str, str] = {}
+    custom_prefixes: dict[str, str] = {}
     if len(uploaded_files) > 0:
         st.markdown(
             f'<div style="font-size:11px;font-weight:600;color:#475569;'
@@ -1981,18 +2033,29 @@ def main():
             f'🎨 &nbsp;{labels.get("file_colors","File highlight colors")}</div>',
             unsafe_allow_html=True,
         )
-        color_cols = st.columns(min(len(uploaded_files), 4))
         for idx, uf in enumerate(uploaded_files):
             default = FILE_COLORS[idx % len(FILE_COLORS)]
-            # Use white (#FFFFFF) as default for first file (no highlight)
-            key = f"_file_color_{uf.name}"
-            with color_cols[idx % len(color_cols)]:
+            key_color  = f"_file_color_{uf.name}"
+            key_prefix = f"_file_prefix_{uf.name}"
+            col_a, col_b = st.columns([1, 2])
+            with col_a:
                 picked = st.color_picker(
                     Path(uf.name).stem[:20],
-                    value=st.session_state.get(key, default),
-                    key=key,
+                    value=st.session_state.get(key_color, default),
+                    key=key_color,
                 )
                 custom_colors[uf.name] = picked
+            with col_b:
+                prefix_val = st.text_input(
+                    labels.get("file_prefix_label", "Cabinet prefix (optional)"),
+                    value=st.session_state.get(key_prefix, ""),
+                    placeholder="e.g. R5:",
+                    key=key_prefix,
+                    label_visibility="collapsed",
+                    help=labels.get("file_prefix_help",
+                                    "Add a prefix to all bare N/alpha cabinet IDs in this file, e.g. 'R5:'"),
+                )
+                custom_prefixes[uf.name] = prefix_val.strip()
 
     # ── Parse with progress feedback ──────────────────────────────────
     parse_placeholder = st.empty()
@@ -2004,7 +2067,7 @@ def main():
         unsafe_allow_html=True,
     )
 
-    all_rows, imported_files = parse_uploaded_files(uploaded_files, custom_colors)
+    all_rows, imported_files = parse_uploaded_files(uploaded_files, custom_colors, custom_prefixes)
     pivot_data = transform(all_rows, piece_names)
 
     # ── Success banner ────────────────────────────────────────────────
@@ -2027,6 +2090,60 @@ def main():
         f'</div>',
         unsafe_allow_html=True,
     )
+
+    # ── Unknown piece name mapping ────────────────────────────────────
+    known_names = set(piece_names)
+    # Collect raw piece names from parsed rows that aren't in any column
+    unknown_raw = sorted({
+        r["piece_name"] for r in all_rows
+        if r["piece_name"] not in known_names
+        and r["piece_name"] not in (piece_aliases := {})  # placeholder
+    })
+    # Build using the actual transformer aliases
+    from core.transformer import _ALIASES
+    unknown_raw = sorted({
+        r["piece_name"] for r in all_rows
+        if r["piece_name"] not in known_names
+        and r["piece_name"] not in _ALIASES
+    })
+
+    if unknown_raw:
+        st.markdown(
+            f'<div style="padding:10px 14px;border-radius:8px;margin-bottom:8px;'
+            f'background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.30);'
+            f'color:#fbbf24;font-size:12px;font-weight:600;">'
+            f'⚠️ &nbsp;{len(unknown_raw)} '
+            f'{html.escape(labels.get("unknown_pieces","unrecognized piece name(s) — assign them to a column below"))}'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        col_options = ["— " + labels.get("ignore","ignore") + " —"] + list(piece_names)
+        mapping_changed = False
+        for uname in unknown_raw:
+            key = f"_piece_map_{uname}"
+            current = st.session_state.get(key, col_options[0])
+            chosen = st.selectbox(
+                f'"{uname}"',
+                col_options,
+                index=col_options.index(current) if current in col_options else 0,
+                key=key,
+            )
+            if chosen != col_options[0]:
+                # Apply mapping to all_rows in memory
+                for r in all_rows:
+                    if r["piece_name"] == uname:
+                        r["piece_name"] = chosen
+                mapping_changed = True
+
+        if mapping_changed:
+            # Re-transform with updated mappings
+            pivot_data = transform(all_rows, piece_names)
+            total_cabinets = len(pivot_data)
+            total_pieces = sum(
+                1 for row in pivot_data
+                for name in piece_names
+                if piece_entries(row, name)
+            )
 
     # ── File header banners (filename + color) ───────────────────────
     st.markdown(_file_header_banners(imported_files), unsafe_allow_html=True)
@@ -2420,9 +2537,18 @@ def main():
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
+        # Pass Excel formatting options
+        excel_kw = dict(
+            font_size   = st.session_state.get("excel_font_size", 14),
+            dim_col_width = st.session_state.get("excel_dim_width", 18),
+            cab_col_width = st.session_state.get("excel_cab_width", 12),
+        )
+        def _export_excel_custom(data, pnames, path):
+            export_excel(data, pnames, path, **excel_kw)
+
         st.download_button(
             labels["download_excel"],
-            data=export_bytes(export_excel, filtered_data, filtered_names, ".xlsx"),
+            data=export_bytes(_export_excel_custom, filtered_data, filtered_names, ".xlsx"),
             file_name=xlsx_name,
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True,
