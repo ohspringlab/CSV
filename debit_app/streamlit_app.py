@@ -24,6 +24,43 @@ from core.transformer import transform
 
 APP_DIR = Path(__file__).resolve().parent
 CONFIG_PATH = APP_DIR / "config" / "nomenclature.json"
+USER_SETTINGS_PATH = APP_DIR / "config" / "user_settings.json"
+
+_USER_SETTINGS_DEFAULTS = {
+    "excel_font_size": 14,
+    "excel_col_scale": 0.75,
+    "excel_dim_width": 18,
+    "excel_cab_width": 10,
+    "excel_mod_width": 14,
+    # Default file highlight colors (index matches FILE_COLORS order)
+    "file_color_0": "#FFFF00",   # yellow (stronger than pale #FFFACD)
+    "file_color_1": "#ADD8E6",   # light blue
+    "file_color_2": "#E0FFE0",   # light green
+    "file_color_3": "#FFE4E1",   # light rose
+    "file_color_4": "#F0E6FF",   # light lavender
+    "file_color_5": "#FFE8CC",   # light orange
+    "file_color_6": "#E6FFFA",   # light teal
+    "file_color_7": "#FFFACD",   # light yellow
+}
+
+
+def load_user_settings() -> dict:
+    """Load persistent user settings from disk, falling back to defaults."""
+    try:
+        with USER_SETTINGS_PATH.open("r", encoding="utf-8") as f:
+            saved = json.load(f)
+        return {**_USER_SETTINGS_DEFAULTS, **saved}
+    except Exception:
+        return dict(_USER_SETTINGS_DEFAULTS)
+
+
+def save_user_settings(settings: dict):
+    """Persist user settings to disk."""
+    try:
+        with USER_SETTINGS_PATH.open("w", encoding="utf-8") as f:
+            json.dump(settings, f, indent=2)
+    except Exception:
+        pass
 
 TRANSLATIONS = {
     "en": {
@@ -129,7 +166,9 @@ TRANSLATIONS = {
         "file_colors": "File highlight colors",
         "excel_export_settings": "Excel export settings",
         "excel_font_size": "Font size",
-        "excel_dim_width": "Dimension column width",
+        "excel_col_scale": "Column width scale",
+        "excel_col_scale_help": "Scale all dimension columns. 0.75 = compact, 1.0 = standard.",
+        "excel_dim_width": "Min dimension column width",
         "excel_cab_width": "Cabinet column width",
         "unknown_pieces": "unrecognized piece name(s) — assign them to a column below",
         "ignore": "ignore",
@@ -239,7 +278,9 @@ TRANSLATIONS = {
         "file_colors": "Couleurs de surlignage par fichier",
         "excel_export_settings": "Paramètres export Excel",
         "excel_font_size": "Taille de police",
-        "excel_dim_width": "Largeur col. dimensions",
+        "excel_col_scale": "Échelle largeur colonnes",
+        "excel_col_scale_help": "0.75 = compact, 1.0 = standard, 1.2 = large.",
+        "excel_dim_width": "Largeur min. col. dimensions",
         "excel_cab_width": "Largeur col. meuble",
         "unknown_pieces": "nom(s) de pièce non reconnu(s) — assignez-les à une colonne ci-dessous",
         "ignore": "ignorer",
@@ -1939,7 +1980,7 @@ def main():
     with st.sidebar:
         st.markdown(
             f'<div style="margin:18px 0 8px;font-size:11px;font-weight:700;'
-            f'letter-spacing:1.2px;text-transform:uppercase;color:#475569;">'
+            f'letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;">'
             f'⚙ &nbsp;{html.escape(labels["nomenclature"])}</div>',
             unsafe_allow_html=True,
         )
@@ -1962,7 +2003,7 @@ def main():
         # ── Job reference / notes ──────────────────────────────────────
         st.markdown(
             f'<div style="margin:18px 0 6px;font-size:11px;font-weight:700;'
-            f'letter-spacing:1.2px;text-transform:uppercase;color:#475569;">'
+            f'letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;">'
             f'📝 &nbsp;{html.escape(labels.get("notes_label","Notes"))}</div>',
             unsafe_allow_html=True,
         )
@@ -1977,28 +2018,49 @@ def main():
         # ── Excel formatting controls ──────────────────────────────────
         st.markdown(
             f'<div style="margin:18px 0 6px;font-size:11px;font-weight:700;'
-            f'letter-spacing:1.2px;text-transform:uppercase;color:#475569;">'
+            f'letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;">'
             f'📐 &nbsp;{html.escape(labels.get("excel_export_settings","Excel export settings"))}</div>',
             unsafe_allow_html=True,
         )
+
+        # Load saved defaults once per session
+        if "_user_settings_loaded" not in st.session_state:
+            saved = load_user_settings()
+            for k, v in saved.items():
+                st.session_state.setdefault(k, v)
+            st.session_state["_user_settings_loaded"] = True
+
         excel_font_size = st.slider(
             labels.get("excel_font_size", "Font size"),
             min_value=8, max_value=20,
-            value=st.session_state.get("excel_font_size", 14),
             key="excel_font_size",
         )
+        excel_col_scale = st.slider(
+            labels.get("excel_col_scale", "Column width scale"),
+            min_value=0.4, max_value=1.5, step=0.05,
+            key="excel_col_scale",
+            help=labels.get("excel_col_scale_help",
+                            "Scale all dimension columns. 0.75 = compact, 1.0 = standard, 1.2 = wide."),
+        )
         excel_dim_width = st.slider(
-            labels.get("excel_dim_width", "Dimension column width"),
-            min_value=10, max_value=40,
-            value=st.session_state.get("excel_dim_width", 18),
+            labels.get("excel_dim_width", "Min dimension column width"),
+            min_value=8, max_value=40,
             key="excel_dim_width",
         )
         excel_cab_width = st.slider(
             labels.get("excel_cab_width", "Cabinet column width"),
-            min_value=8, max_value=30,
-            value=st.session_state.get("excel_cab_width", 12),
+            min_value=4, max_value=20,
             key="excel_cab_width",
         )
+
+        # Save to disk whenever values change
+        current_settings = {
+            "excel_font_size": st.session_state.excel_font_size,
+            "excel_col_scale": st.session_state.excel_col_scale,
+            "excel_dim_width": st.session_state.excel_dim_width,
+            "excel_cab_width": st.session_state.excel_cab_width,
+        }
+        save_user_settings(current_settings)
 
     uploaded_files = st.file_uploader(
         "📂 " + labels["file_uploader"],
@@ -2033,18 +2095,33 @@ def main():
             f'🎨 &nbsp;{labels.get("file_colors","File highlight colors")}</div>',
             unsafe_allow_html=True,
         )
+        color_changed = False
         for idx, uf in enumerate(uploaded_files):
-            default = FILE_COLORS[idx % len(FILE_COLORS)]
+            # Default: use saved persistent color, then fall back to FILE_COLORS
+            saved_color_key = f"file_color_{idx}"
+            saved_default = (
+                st.session_state.get(f"_saved_{saved_color_key}")
+                or load_user_settings().get(saved_color_key)
+                or FILE_COLORS[idx % len(FILE_COLORS)]
+            )
             key_color  = f"_file_color_{uf.name}"
             key_prefix = f"_file_prefix_{uf.name}"
+
+            # Pre-fill with saved default on first appearance
+            if key_color not in st.session_state:
+                st.session_state[key_color] = saved_default
+
             col_a, col_b = st.columns([1, 2])
             with col_a:
                 picked = st.color_picker(
                     Path(uf.name).stem[:20],
-                    value=st.session_state.get(key_color, default),
                     key=key_color,
                 )
                 custom_colors[uf.name] = picked
+                # Detect if user changed from saved default
+                if picked != saved_default:
+                    color_changed = True
+                    st.session_state[f"_saved_{saved_color_key}"] = picked
             with col_b:
                 prefix_val = st.text_input(
                     labels.get("file_prefix_label", "Cabinet prefix (optional)"),
@@ -2056,6 +2133,15 @@ def main():
                                     "Add a prefix to all bare N/alpha cabinet IDs in this file, e.g. 'R5:'"),
                 )
                 custom_prefixes[uf.name] = prefix_val.strip()
+
+        # Persist updated colors to user_settings.json
+        if color_changed:
+            current = load_user_settings()
+            for idx, uf in enumerate(uploaded_files):
+                key_color = f"_file_color_{uf.name}"
+                if key_color in st.session_state:
+                    current[f"file_color_{idx}"] = st.session_state[key_color]
+            save_user_settings(current)
 
     # ── Parse with progress feedback ──────────────────────────────────
     parse_placeholder = st.empty()
@@ -2122,11 +2208,20 @@ def main():
         for uname in unknown_raw:
             key = f"_piece_map_{uname}"
             current = st.session_state.get(key, col_options[0])
+            # Bright visible label above the selectbox
+            st.markdown(
+                f'<div style="margin:10px 0 2px;font-size:13px;font-weight:700;'
+                f'color:#f1f5f9;font-family:Inter,sans-serif;">'
+                f'⚠️ &nbsp;<span style="color:#fbbf24;">{html.escape(uname)}</span>'
+                f' → ?</div>',
+                unsafe_allow_html=True,
+            )
             chosen = st.selectbox(
-                f'"{uname}"',
+                uname,
                 col_options,
                 index=col_options.index(current) if current in col_options else 0,
                 key=key,
+                label_visibility="collapsed",
             )
             if chosen != col_options[0]:
                 # Apply mapping to all_rows in memory
@@ -2539,9 +2634,10 @@ def main():
     with col1:
         # Pass Excel formatting options
         excel_kw = dict(
-            font_size   = st.session_state.get("excel_font_size", 14),
+            font_size     = st.session_state.get("excel_font_size", 14),
+            col_scale     = st.session_state.get("excel_col_scale", 0.75),
             dim_col_width = st.session_state.get("excel_dim_width", 18),
-            cab_col_width = st.session_state.get("excel_cab_width", 12),
+            cab_col_width = st.session_state.get("excel_cab_width", 10),
         )
         def _export_excel_custom(data, pnames, path):
             export_excel(data, pnames, path, **excel_kw)

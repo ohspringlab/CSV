@@ -100,10 +100,11 @@ def _write_sheet(
     piece_names: list[str],
     sheet_title: str = "Liste de Débit",
     font_size: int = 14,
+    col_scale: float = 0.75,
     qty_col_width: int = 5,
     dim_col_width: int = 18,
-    cab_col_width: int = 12,
-    mod_col_width: int = 16,
+    cab_col_width: int = 10,
+    mod_col_width: int = 14,
 ):
     """Write one pivot sheet into an openpyxl Worksheet.
 
@@ -223,33 +224,29 @@ def _write_sheet(
     # ── Column widths — auto-fit based on content ──────────────────────
     ws.freeze_panes = "C3"
 
-    # Calculate auto-fit width for cabinet column (col A)
-    # Measure all cabinet IDs + "Meuble" header
+    # Cabinet column: auto-fit to longest ID
     max_cab_len = max(
         (len(str(row_data.get("cabinet_id", ""))) for row_data in data),
         default=4,
     )
-    max_cab_len = max(max_cab_len, len("Meuble"))
-    # Convert character count to Excel column width (approx 1.2× + 2 padding)
-    auto_cab_width = max(8, min(max_cab_len * 1.3 + 2, cab_col_width))
+    auto_cab_width = max(cab_col_width, max_cab_len * 1.2 + 1)
     ws.column_dimensions["A"].width = auto_cab_width
     ws.column_dimensions["B"].width = mod_col_width
 
     col = 3
     for pname in piece_names:
-        # Qty column: fixed narrow
         ws.column_dimensions[get_column_letter(col)].width = qty_col_width
 
-        # Dimension column: measure longest dimension string in this piece
-        max_dim_len = len(pname)   # at minimum wide enough for the header
+        # Dimension column: measure longest fraction string in this piece
+        max_dim_len = len(pname)
         for row_data in data:
             for e in _piece_entries(row_data, pname):
                 s = _dimension_str(e.get("width", ""), e.get("length", ""))
                 if len(s) > max_dim_len:
                     max_dim_len = len(s)
-        # Convert to Excel width: each char ≈ 1.1 units at font_size 14
-        char_width = font_size / 11.0   # scale relative to default 11pt
-        auto_dim = max(dim_col_width, int(max_dim_len * char_width * 1.15) + 2)
+        # Scale factor controls how tightly columns fit
+        auto_dim = max(dim_col_width,
+                       int(max_dim_len * (font_size / 11.0) * col_scale) + 1)
         ws.column_dimensions[get_column_letter(col + 1)].width = auto_dim
         col += 2
 
@@ -284,17 +281,17 @@ def _write_sheet(
 # ── Public export functions ─────────────────────────────────────────────────
 
 def export_excel(data: list, piece_names: list, output_path: str,
-                 font_size: int = 14, qty_col_width: int = 5,
-                 dim_col_width: int = 18, cab_col_width: int = 12,
-                 mod_col_width: int = 16):
+                 font_size: int = 14, col_scale: float = 0.75,
+                 qty_col_width: int = 5, dim_col_width: int = 18,
+                 cab_col_width: int = 10, mod_col_width: int = 14):
     """Export to Excel with two sheets: main parts and drawer parts."""
     if not HAS_OPENPYXL:
         raise ImportError("openpyxl is required. Run: pip install openpyxl")
 
     main_names, drw_names = split_piece_names(piece_names)
-    kw = dict(font_size=font_size, qty_col_width=qty_col_width,
-              dim_col_width=dim_col_width, cab_col_width=cab_col_width,
-              mod_col_width=mod_col_width)
+    kw = dict(font_size=font_size, col_scale=col_scale,
+              qty_col_width=qty_col_width, dim_col_width=dim_col_width,
+              cab_col_width=cab_col_width, mod_col_width=mod_col_width)
 
     wb = openpyxl.Workbook()
     # Override the workbook default font size (Normal style = index 0)
